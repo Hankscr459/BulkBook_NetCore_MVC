@@ -14,6 +14,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 
@@ -27,7 +28,7 @@ namespace BulkyBook.Areas.Identity.Pages.Account
         private readonly ILogger<RegisterModel> _logger;
         private readonly IEmailSender _emailSender;
         private readonly RoleManager<IdentityRole> _RoleManger;
-        private readonly RoleManager<IdentityRole> _roleManger;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly IUnitOfWork _unitOfWork;
 
         public RegisterModel(
@@ -35,7 +36,7 @@ namespace BulkyBook.Areas.Identity.Pages.Account
             SignInManager<IdentityUser> signInManager,
             ILogger<RegisterModel> logger,
             IEmailSender emailSender,
-            RoleManager<IdentityRole> roleManger,
+            RoleManager<IdentityRole> roleManager,
             IUnitOfWork unitOfWork
             )
         {
@@ -43,7 +44,7 @@ namespace BulkyBook.Areas.Identity.Pages.Account
             _signInManager = signInManager;
             _logger = logger;
             _emailSender = emailSender;
-            _roleManger = roleManger;
+            _roleManager = roleManager;
             _unitOfWork = unitOfWork;
         }
 
@@ -82,11 +83,26 @@ namespace BulkyBook.Areas.Identity.Pages.Account
             public string PhoneNumber { get; set; }
             public int? CompanyId { get; set; }
             public string Role { get; set; }
+            public IEnumerable<SelectListItem> CompanyList { get; set; }
+            public IEnumerable<SelectListItem> RoleList { get; set; }
         }
 
         public async Task OnGetAsync(string returnUrl = null)
         {
             ReturnUrl = returnUrl;
+
+            Input = new InputModel()
+            {
+                CompanyList = _unitOfWork.Company.GetAll().Select(i => new SelectListItem {
+                    Text = i.Name,
+                    Value = i.Id.ToString()
+                }),
+                RoleList = _roleManager.Roles.Where(u => u.Name != SD.Role_User_Indi).Select(x => x.Name).Select(i => new SelectListItem {
+                    Text = i,
+                    Value = i
+                })
+            };
+
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
         }
 
@@ -114,24 +130,24 @@ namespace BulkyBook.Areas.Identity.Pages.Account
                 {
                     _logger.LogInformation("User created a new account with password.");
 
-                    if (!await _roleManger.RoleExistsAsync(SD.Role_Admin))
+                    if (!await _roleManager.RoleExistsAsync(SD.Role_Admin))
                     {
-                        await _roleManger.CreateAsync(new IdentityRole(SD.Role_Admin));
+                        await _roleManager.CreateAsync(new IdentityRole(SD.Role_Admin));
                     }
 
-                    if (!await _roleManger.RoleExistsAsync(SD.Role_Employee))
+                    if (!await _roleManager.RoleExistsAsync(SD.Role_Employee))
                     {
-                        await _roleManger.CreateAsync(new IdentityRole(SD.Role_Employee));
+                        await _roleManager.CreateAsync(new IdentityRole(SD.Role_Employee));
                     }
 
-                    if (!await _roleManger.RoleExistsAsync(SD.Role_User_Comp))
+                    if (!await _roleManager.RoleExistsAsync(SD.Role_User_Comp))
                     {
-                        await _roleManger.CreateAsync(new IdentityRole(SD.Role_User_Comp));
+                        await _roleManager.CreateAsync(new IdentityRole(SD.Role_User_Comp));
                     }
 
-                    if (!await _roleManger.RoleExistsAsync(SD.Role_User_Indi))
+                    if (!await _roleManager.RoleExistsAsync(SD.Role_User_Indi))
                     {
-                        await _roleManger.CreateAsync(new IdentityRole(SD.Role_User_Indi));
+                        await _roleManager.CreateAsync(new IdentityRole(SD.Role_User_Indi));
                     }
 
                     await _userManager.AddToRoleAsync(user, SD.Role_Admin);
